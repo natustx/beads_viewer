@@ -745,9 +745,6 @@ func (w *Wizard) PerformDeployWithIssueCount(expectedIssueCount int) (*WizardRes
 
 	switch w.config.DeployTarget {
 	case "github":
-		// Note: GitHub Actions workflow is already added by CopyEmbeddedAssets
-		// during the export phase, so we don't need to add it again here.
-
 		deployConfig := GitHubDeployConfig{
 			RepoName:         w.config.RepoName,
 			Private:          w.config.RepoPrivate,
@@ -757,8 +754,7 @@ func (w *Wizard) PerformDeployWithIssueCount(expectedIssueCount int) (*WizardRes
 			ForceOverwrite:   w.isUpdate, // Auto-overwrite when updating existing deployment
 		}
 
-		// Use enhanced deployment with fallback
-		deployResult, err := DeployToGitHubPagesWithFallback(deployConfig, expectedIssueCount)
+		deployResult, err := DeployToGitHubPagesAndVerify(deployConfig, expectedIssueCount)
 		if err != nil {
 			// If GitHub deployment fails, offer Cloudflare as fallback
 			fmt.Printf("\n⚠ GitHub Pages deployment failed: %v\n", err)

@@ -246,64 +246,31 @@ func TestSuggestRepoName_RegularDir(t *testing.T) {
 	}
 }
 
-func TestWriteGitHubActionsWorkflow(t *testing.T) {
+func TestRemoveGitHubActionsWorkflow(t *testing.T) {
 	tmpDir := t.TempDir()
-
-	// Write the workflow
-	if err := WriteGitHubActionsWorkflow(tmpDir); err != nil {
-		t.Fatalf("WriteGitHubActionsWorkflow failed: %v", err)
+	workflowDir := filepath.Join(tmpDir, ".github", "workflows")
+	if err := os.MkdirAll(workflowDir, 0755); err != nil {
+		t.Fatalf("Failed to create workflow dir: %v", err)
+	}
+	workflowPath := filepath.Join(workflowDir, "static.yml")
+	if err := os.WriteFile(workflowPath, []byte("name: test"), 0644); err != nil {
+		t.Fatalf("Failed to seed workflow file: %v", err)
 	}
 
-	// Check that the workflow file exists
-	workflowPath := filepath.Join(tmpDir, ".github", "workflows", "static.yml")
-	if _, err := os.Stat(workflowPath); os.IsNotExist(err) {
-		t.Errorf("Workflow file was not created at %s", workflowPath)
+	if err := RemoveGitHubActionsWorkflow(tmpDir); err != nil {
+		t.Fatalf("RemoveGitHubActionsWorkflow failed: %v", err)
 	}
 
-	// Read and verify content
-	content, err := os.ReadFile(workflowPath)
-	if err != nil {
-		t.Fatalf("Failed to read workflow file: %v", err)
-	}
-
-	// Verify key workflow elements
-	contentStr := string(content)
-	checks := []string{
-		"name: Deploy static content to Pages",
-		"push:",
-		"branches: [\"main\"]",
-		"workflow_dispatch:",
-		"actions/checkout@v4",
-		"actions/configure-pages@v5",
-		"actions/upload-pages-artifact@v3",
-		"actions/deploy-pages@v4",
-	}
-
-	for _, check := range checks {
-		if !strings.Contains(contentStr, check) {
-			t.Errorf("Workflow missing expected content: %s", check)
-		}
+	if _, err := os.Stat(workflowPath); !os.IsNotExist(err) {
+		t.Errorf("Workflow file was not removed at %s", workflowPath)
 	}
 }
 
-func TestGitHubActionsWorkflowContent(t *testing.T) {
-	// Verify the workflow content is valid YAML-like structure
-	content := GitHubActionsWorkflowContent
+func TestRemoveGitHubActionsWorkflow_MissingFile(t *testing.T) {
+	tmpDir := t.TempDir()
 
-	// Check required fields
-	requiredFields := []string{
-		"name:",
-		"on:",
-		"permissions:",
-		"jobs:",
-		"deploy:",
-		"steps:",
-	}
-
-	for _, field := range requiredFields {
-		if !strings.Contains(content, field) {
-			t.Errorf("GitHubActionsWorkflowContent missing required field: %s", field)
-		}
+	if err := RemoveGitHubActionsWorkflow(tmpDir); err != nil {
+		t.Fatalf("RemoveGitHubActionsWorkflow should ignore missing files: %v", err)
 	}
 }
 
@@ -359,41 +326,6 @@ func TestParseGHUsername_MultipleLines(t *testing.T) {
 	}
 }
 
-func TestGitHubActionsStatus_Struct(t *testing.T) {
-	// Test the struct can be used correctly
-	status := &GitHubActionsStatus{
-		WorkflowRunning:     true,
-		WorkflowQueued:      false,
-		LastRunStatus:       "in_progress",
-		LastRunCreatedAt:    "2026-02-09T18:00:00Z",
-		PossiblyRateLimited: false,
-	}
-
-	if !status.WorkflowRunning {
-		t.Error("Expected WorkflowRunning to be true")
-	}
-	if status.WorkflowQueued {
-		t.Error("Expected WorkflowQueued to be false")
-	}
-	if status.PossiblyRateLimited {
-		t.Error("Expected PossiblyRateLimited to be false")
-	}
-	if status.LastRunStatus != "in_progress" {
-		t.Errorf("Expected LastRunStatus 'in_progress', got %s", status.LastRunStatus)
-	}
-
-	// Test rate-limited scenario
-	rateLimited := &GitHubActionsStatus{
-		WorkflowQueued:      true,
-		PossiblyRateLimited: true,
-		LastRunStatus:       "queued",
-	}
-
-	if !rateLimited.PossiblyRateLimited {
-		t.Error("Expected PossiblyRateLimited to be true")
-	}
-}
-
 func TestListUserRepos_DefaultLimit(t *testing.T) {
 	// ListUserRepos normalizes limit <= 0 to 30
 	// We can't test the actual API call, but we can verify the
@@ -434,23 +366,25 @@ func TestSuggestRepoName_EdgeCases(t *testing.T) {
 	}
 }
 
-func TestWriteGitHubActionsWorkflow_Idempotent(t *testing.T) {
+func TestRemoveGitHubActionsWorkflow_Idempotent(t *testing.T) {
 	tmpDir := t.TempDir()
+	workflowDir := filepath.Join(tmpDir, ".github", "workflows")
+	if err := os.MkdirAll(workflowDir, 0755); err != nil {
+		t.Fatalf("Failed to create workflow dir: %v", err)
+	}
+	workflowPath := filepath.Join(workflowDir, "static.yml")
+	if err := os.WriteFile(workflowPath, []byte("name: test"), 0644); err != nil {
+		t.Fatalf("Failed to seed workflow file: %v", err)
+	}
 
-	// Write twice - should not error
-	if err := WriteGitHubActionsWorkflow(tmpDir); err != nil {
-		t.Fatalf("First write failed: %v", err)
+	if err := RemoveGitHubActionsWorkflow(tmpDir); err != nil {
+		t.Fatalf("First remove failed: %v", err)
 	}
-	if err := WriteGitHubActionsWorkflow(tmpDir); err != nil {
-		t.Fatalf("Second write (idempotent) failed: %v", err)
+	if err := RemoveGitHubActionsWorkflow(tmpDir); err != nil {
+		t.Fatalf("Second remove failed: %v", err)
 	}
 
-	// Content should be valid
-	content, err := os.ReadFile(filepath.Join(tmpDir, ".github", "workflows", "static.yml"))
-	if err != nil {
-		t.Fatalf("Failed to read workflow: %v", err)
-	}
-	if !strings.Contains(string(content), "deploy-pages@v4") {
-		t.Error("Workflow content missing expected action")
+	if _, err := os.Stat(workflowPath); !os.IsNotExist(err) {
+		t.Error("Workflow file should remain absent after repeated removal")
 	}
 }

@@ -149,6 +149,11 @@ func TestCopyEmbeddedAssets(t *testing.T) {
 	if strings.Contains(contentStr, `src="viewer.js"`) {
 		t.Error("viewer.js should have cache-busting parameter")
 	}
+
+	workflowPath := filepath.Join(outputDir, ".github", "workflows", "static.yml")
+	if _, err := os.Stat(workflowPath); !os.IsNotExist(err) {
+		t.Error("CopyEmbeddedAssets should not create a GitHub Actions workflow")
+	}
 }
 
 func TestCopyEmbeddedAssets_NoTitle(t *testing.T) {
@@ -172,17 +177,23 @@ func TestCopyEmbeddedAssets_NoTitle(t *testing.T) {
 	}
 }
 
-func TestAddGitHubWorkflowToBundle(t *testing.T) {
+func TestRemoveGitHubWorkflowFromBundle(t *testing.T) {
 	tmpDir := t.TempDir()
-
-	err := AddGitHubWorkflowToBundle(tmpDir)
-	if err != nil {
-		t.Fatalf("AddGitHubWorkflowToBundle failed: %v", err)
+	workflowDir := filepath.Join(tmpDir, ".github", "workflows")
+	if err := os.MkdirAll(workflowDir, 0755); err != nil {
+		t.Fatalf("Failed to create workflow dir: %v", err)
+	}
+	workflowPath := filepath.Join(workflowDir, "static.yml")
+	if err := os.WriteFile(workflowPath, []byte("name: test"), 0644); err != nil {
+		t.Fatalf("Failed to seed workflow file: %v", err)
 	}
 
-	// Verify workflow was created
-	workflowPath := filepath.Join(tmpDir, ".github", "workflows", "static.yml")
-	if _, err := os.Stat(workflowPath); os.IsNotExist(err) {
-		t.Error("Workflow file was not created")
+	err := RemoveGitHubWorkflowFromBundle(tmpDir)
+	if err != nil {
+		t.Fatalf("RemoveGitHubWorkflowFromBundle failed: %v", err)
+	}
+
+	if _, err := os.Stat(workflowPath); !os.IsNotExist(err) {
+		t.Error("Workflow file was not removed")
 	}
 }

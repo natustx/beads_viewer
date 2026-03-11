@@ -5,8 +5,8 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	flag "github.com/spf13/pflag"
 	"fmt"
+	flag "github.com/spf13/pflag"
 	"html"
 	"io"
 	"io/fs"
@@ -4229,8 +4229,8 @@ func main() {
 		}
 		output := CausalityEnvelope{
 			CausalityResult: result,
-			OutputFormat:     robotOutputFormat,
-			Version:          version.Version,
+			OutputFormat:    robotOutputFormat,
+			Version:         version.Version,
 		}
 
 		encoder := newRobotEncoder(os.Stdout)
@@ -5830,13 +5830,6 @@ func copyViewerAssets(outputDir, title string) error {
 		}
 	}
 
-	// Always add GitHub Actions workflow for reliable Pages deployment
-	// This ensures the workflow is in the bundle regardless of deployment target
-	if err := export.WriteGitHubActionsWorkflow(outputDir); err != nil {
-		// Non-fatal - just log a warning
-		fmt.Printf("  Warning: Could not add GitHub Actions workflow: %v\n", err)
-	}
-
 	return nil
 }
 
@@ -6810,7 +6803,7 @@ func absInt(v int) int {
 // BurndownOutput represents the JSON output for --robot-burndown (bv-159)
 type BurndownOutput struct {
 	RobotEnvelope
-	SprintID string `json:"sprint_id"`
+	SprintID          string                `json:"sprint_id"`
 	SprintName        string                `json:"sprint_name"`
 	StartDate         time.Time             `json:"start_date"`
 	EndDate           time.Time             `json:"end_date"`
@@ -7135,7 +7128,7 @@ func calculateBurndownAt(sprint *model.Sprint, issues []model.Issue, now time.Ti
 	idealLine := generateIdealLine(sprint, totalIssues)
 
 	return BurndownOutput{
-		SprintID: sprint.ID,
+		SprintID:          sprint.ID,
 		SprintName:        sprint.Name,
 		StartDate:         sprint.StartDate,
 		EndDate:           sprint.EndDate,

@@ -142,7 +142,11 @@ exit 0
 		"git branch -M main",                                            // Branch
 		"git remote add origin https://github.com/TestUser/my-site.git", // Remote
 		"git push -u origin main",                                       // Push
-		"gh api repos/TestUser/my-site/pages -X POST",                   // Enable pages
+		"gh api -X PUT repos/TestUser/my-site/pages -f source[branch]=gh-pages -f source[path]=/", // Switch Pages source
+		"git checkout --orphan gh-pages",                   // Create gh-pages branch
+		"git commit -m Deploy via legacy gh-pages branch",  // Commit gh-pages
+		"git push -u origin gh-pages --force",              // Push gh-pages
+		"gh api repos/TestUser/my-site/pages -q .html_url", // Read final URL
 	}
 
 	for _, cmd := range expectedCommands {

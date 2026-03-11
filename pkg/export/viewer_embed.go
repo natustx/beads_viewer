@@ -12,8 +12,6 @@ import (
 	"time"
 )
 
-// Note: WriteGitHubActionsWorkflow is defined in github.go
-
 // ViewerAssetsFS embeds the viewer_assets directory for static site export.
 // This allows the bv binary to include all necessary HTML/JS/CSS assets
 // without requiring them to exist on the filesystem.
@@ -73,13 +71,6 @@ func CopyEmbeddedAssets(outputDir, title string) error {
 
 	if err != nil {
 		return err
-	}
-
-	// Always add GitHub Actions workflow for reliable Pages deployment
-	// This ensures deployments trigger even if the built-in Pages workflow doesn't auto-trigger
-	if wfErr := WriteGitHubActionsWorkflow(outputDir); wfErr != nil {
-		// Non-fatal - just log a warning (fmt is already imported via other usage)
-		fmt.Printf("  Warning: Could not add GitHub Actions workflow: %v\n", wfErr)
 	}
 
 	return nil
@@ -143,8 +134,7 @@ func HasEmbeddedAssets() bool {
 	return err == nil
 }
 
-// AddGitHubWorkflowToBundle adds the GitHub Actions workflow to an exported bundle.
-// This should be called after CopyEmbeddedAssets to ensure the workflow is present.
-func AddGitHubWorkflowToBundle(outputDir string) error {
-	return WriteGitHubActionsWorkflow(outputDir)
+// RemoveGitHubWorkflowFromBundle removes the legacy GitHub Actions workflow from an exported bundle.
+func RemoveGitHubWorkflowFromBundle(outputDir string) error {
+	return RemoveGitHubActionsWorkflow(outputDir)
 }
